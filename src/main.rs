@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use std::time::Duration;
 use std::time::Instant;
 
 use sysinfo::{Pid, Process, System, ProcessRefreshKind, ProcessesToUpdate, MINIMUM_CPU_UPDATE_INTERVAL};
@@ -85,22 +86,42 @@ fn draw_emergency(draw: &mut Draw, coord: (f32, f32)){
 
 }
 
-fn draw(gfx: &mut Graphics){
+fn draw(gfx: &mut Graphics, state: &mut State){
     let mut draw = gfx.create_draw();
+
     draw.clear(Color::TRANSPARENT);
     
-    draw_emergency(&mut draw, (500f32, 500f32));
+    if state.first_refresh+MINIMUM_CPU_UPDATE_INTERVAL <= Instant::now(){
+        let cpus = state.system.cpus();
+        dbg!(cpus.len());
+        let x = 500f32;
+        let y = 100f32;
+        let offset_x = 300f32;
+        let offset_y = 300f32;
+        let mut count_x = 0f32;
+        let mut count_y = 0f32;
+        for cpu in cpus{
+            println!("{}", cpu.name());
+            draw_emergency(&mut draw, (x+count_x*offset_x, y+count_y*offset_y));
+            count_x += 1.0;
+            if count_x == 3.0{
+                count_x = 0.0;
+                count_y += 1.0;
+            }
+        }
+    
+    }
     gfx.render(&draw);
 }
 
 
 fn update(app: &mut App, state: &mut State) {
-    if state.last_refresh+MINIMUM_CPU_UPDATE_INTERVAL >= Instant::now(){
+    if state.last_refresh+Duration::from_secs(1) <= Instant::now(){
         state.system.refresh_cpu_all();
         state.last_refresh = Instant::now();
+        println!("update");
     }
-    if state.first_refresh+MINIMUM_CPU_UPDATE_INTERVAL>= Instant::now(){
-    }
+    
 
     if app.keyboard.is_down(KeyCode::Escape){
         app.exit();
