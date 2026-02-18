@@ -1,22 +1,166 @@
 use std::f32::consts::PI;
 use std::time::Duration;
 use std::time::Instant;
+use std::env;
 
+
+use hexing::HexRing;
 use sysinfo::{Pid, Process, System, ProcessRefreshKind, ProcessesToUpdate, MINIMUM_CPU_UPDATE_INTERVAL};
+use hexing::HexPosition;
 
 use notan::prelude::*;
 use notan::draw::*;
+
+const ANGEL_NAMES: &'static str = "
+Abatur
+Adathan
+Aglibol
+Ananiel
+Anush
+Arakiel
+Arariel
+Adriel
+Ariel
+Armaros
+Artiya'il
+Asbeel
+Asmodel
+Azazel
+Azrael
+Barachiel
+Baraqiel
+Batariel
+Beburos
+Bezaliel
+Bihram Rabba
+Camael
+Cambiel
+Cassiel
+Chamuel
+Chazaqiel
+Daniel
+Dadrail
+Dumah
+Eleleth
+Gabriel
+Gadreel
+Hadraniel
+Hahasiah
+Hanibal
+Haniel
+Harut
+Hashmal
+Hamalat al-Arsh
+Hibil Ziwa
+Hofniel
+Imamiah
+Ieshim
+Israfil
+Jegudiel
+Jehoel
+Jequn
+Jerahmeel
+Jophiel
+Kadkadael
+Kalka'il
+Kepharel
+Kerubiel
+Kiraman Katibin
+Kokabiel
+Kushiel
+Lailah
+Maalik
+Macroprosopus
+Malakbel
+Manda d-Hayyi
+Marut
+Mebahiah
+Melek Taus
+Metatron
+Michael
+Moroni
+Mu’aqqibat
+Munkar
+Muriel
+Nakir
+Nanael
+Nathaniel
+Netzach
+Nidbai
+Nithael
+Nuriel
+Ophaniel
+Pahaliah
+Penemue
+Phanuel
+Poyel
+Pravuil
+Principalities
+Ptahil
+Puriel
+Radueriel
+Raguel
+Ramiel
+Raphael
+Raziel
+Rikbiel
+Sabriel
+Sachiel
+Sahaquiel
+Sam Ziwa
+Samael
+Samyaza
+Sandalphon
+Sarathiel
+Sariel
+Saureil
+Schemhampharae
+Selaphiel
+Seraphiel
+Shamnail
+Shamsiel
+Sheetil
+Shilmai
+Sidriel
+Simat Hayyi
+Tamiel
+Temeluchus
+Tennin
+Turail
+Turiel
+Uriel
+Uziel
+Vasiariah
+Vehuel
+Wormwood
+Yadathan
+Yarhibol
+Yomiel
+Yushamin
+Zachariel
+Zadkiel
+Zagagel
+Zaphkiel
+Zaqiel
+Zephaniel
+Zephon";
 
 #[derive(AppState)]
 struct State{
     system: System,
     first_refresh: Instant,
+    count: u32,
+    font: Font,
+    names: Vec<&'static str>,
 
     last_refresh: Instant
 }
 
 #[notan_main]
 fn main() -> Result<(), String>{
+    unsafe {
+    std::env::set_var("RUST_BACKTRACE", "1");
+    }
     notan::init_with(setup)
     .add_config(DrawConfig)
     
@@ -70,58 +214,57 @@ fn main() -> Result<(), String>{
 }
 
 
-fn setup() -> State{
+fn setup(app: &mut App, gfx: &mut Graphics) -> State{
+    if app.window().size() != (1920, 1080){
+        panic!("Wrong screen size");
+    }
     let mut system = System::new();
     system.refresh_cpu_all();
+
+    let names = ANGEL_NAMES.split("\n").collect();
 
     State{
         system: system,
         first_refresh: Instant::now(),
         last_refresh: Instant::now(),
+        count: 0,
+        font: gfx.create_font(include_bytes!("../NimbusRomNo9L-Reg.otf")).unwrap(),
+        names
     }
 }
 
-fn draw_emergency(draw: &mut Draw, coord: (f32, f32)){
-    draw.polygon(6, 100.0f32).position(coord.0, coord.1).rotate_from(coord, PI/6f32).color(Color::RED);
+fn draw_emergency(draw: &mut Draw, coord: (f32, f32), font: &Font){
+    draw.polygon(6, 30.0f32).rotate(PI/6.0).translate(coord.0 * 50.0 , coord.1 *50.0 ).color(Color::RED);
 
+    //draw.text(font, name).size(30f32).position(coord.0, coord.1).color(Color::BLACK);
 }
 
 fn draw(gfx: &mut Graphics, state: &mut State){
     let mut draw = gfx.create_draw();
 
     draw.clear(Color::TRANSPARENT);
-    
+    let center: HexPosition<i32> = HexPosition::new(6,6 );
+    let mut hex: Vec<HexPosition<i32>> = Vec::new();
+    hex.push(center);
+    for r in 1..19{
+        hex.append(&mut center.ring(r).collect());
+    }
     if state.first_refresh+MINIMUM_CPU_UPDATE_INTERVAL <= Instant::now(){
-        let cpus = state.system.cpus();
-        dbg!(cpus.len());
-        let x = 500f32;
-        let y = 100f32;
-        let offset_x = 300f32;
-        let offset_y = 300f32;
-        let mut count_x = 0f32;
-        let mut count_y = 0f32;
-        for cpu in cpus{
-            println!("{}", cpu.name());
-            draw_emergency(&mut draw, (x+count_x*offset_x, y+count_y*offset_y));
-            count_x += 1.0;
-            if count_x == 3.0{
-                count_x = 0.0;
-                count_y += 1.0;
-            }
+
+        for pos in hex.get(0..state.count as usize).unwrap(){
+            draw_emergency(&mut draw, pos.to_pixel_coordinates(), &state.font);
+
         }
-    
+
     }
     gfx.render(&draw);
 }
 
 
 fn update(app: &mut App, state: &mut State) {
-    if state.last_refresh+Duration::from_secs(1) <= Instant::now(){
-        state.system.refresh_cpu_all();
-        state.last_refresh = Instant::now();
-        println!("update");
-    }
     
+    
+     state.count += 1;
 
     if app.keyboard.is_down(KeyCode::Escape){
         app.exit();
