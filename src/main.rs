@@ -11,139 +11,7 @@ use hexing::HexPosition;
 use notan::prelude::*;
 use notan::draw::*;
 
-const ANGEL_NAMES: &'static str = "
-Abatur
-Adathan
-Aglibol
-Ananiel
-Anush
-Arakiel
-Arariel
-Adriel
-Ariel
-Armaros
-Artiya'il
-Asbeel
-Asmodel
-Azazel
-Azrael
-Barachiel
-Baraqiel
-Batariel
-Beburos
-Bezaliel
-Bihram Rabba
-Camael
-Cambiel
-Cassiel
-Chamuel
-Chazaqiel
-Daniel
-Dadrail
-Dumah
-Eleleth
-Gabriel
-Gadreel
-Hadraniel
-Hahasiah
-Hanibal
-Haniel
-Harut
-Hashmal
-Hamalat al-Arsh
-Hibil Ziwa
-Hofniel
-Imamiah
-Ieshim
-Israfil
-Jegudiel
-Jehoel
-Jequn
-Jerahmeel
-Jophiel
-Kadkadael
-Kalka'il
-Kepharel
-Kerubiel
-Kiraman Katibin
-Kokabiel
-Kushiel
-Lailah
-Maalik
-Macroprosopus
-Malakbel
-Manda d-Hayyi
-Marut
-Mebahiah
-Melek Taus
-Metatron
-Michael
-Moroni
-Mu’aqqibat
-Munkar
-Muriel
-Nakir
-Nanael
-Nathaniel
-Netzach
-Nidbai
-Nithael
-Nuriel
-Ophaniel
-Pahaliah
-Penemue
-Phanuel
-Poyel
-Pravuil
-Principalities
-Ptahil
-Puriel
-Radueriel
-Raguel
-Ramiel
-Raphael
-Raziel
-Rikbiel
-Sabriel
-Sachiel
-Sahaquiel
-Sam Ziwa
-Samael
-Samyaza
-Sandalphon
-Sarathiel
-Sariel
-Saureil
-Schemhampharae
-Selaphiel
-Seraphiel
-Shamnail
-Shamsiel
-Sheetil
-Shilmai
-Sidriel
-Simat Hayyi
-Tamiel
-Temeluchus
-Tennin
-Turail
-Turiel
-Uriel
-Uziel
-Vasiariah
-Vehuel
-Wormwood
-Yadathan
-Yarhibol
-Yomiel
-Yushamin
-Zachariel
-Zadkiel
-Zagagel
-Zaphkiel
-Zaqiel
-Zephaniel
-Zephon";
+const ANGEL_NAMES: &'static str = include_str!("../angel_name.txt");
 
 #[derive(AppState)]
 struct State{
@@ -158,9 +26,7 @@ struct State{
 
 #[notan_main]
 fn main() -> Result<(), String>{
-    unsafe {
-    std::env::set_var("RUST_BACKTRACE", "1");
-    }
+
     notan::init_with(setup)
     .add_config(DrawConfig)
     
@@ -262,9 +128,11 @@ fn draw(gfx: &mut Graphics, state: &mut State){
 
 
 fn update(app: &mut App, state: &mut State) {
+    if state.last_refresh+Duration::from_millis(10) < Instant::now(){
+        state.count += 1;
+        state.last_refresh = Instant::now()
+    }
     
-    
-     state.count += 1;
 
     if app.keyboard.is_down(KeyCode::Escape){
         app.exit();
